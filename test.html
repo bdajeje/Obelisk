@@ -1,0 +1,111 @@
+<html>
+<head>
+  <script src="public/js/jquery/jquery-2.1.1.min.js"></script>
+  <script src="public/js/obelisk/obelisk.min.js"></script>
+
+  <style>
+     #canvas {
+        border: 1px solid black;
+        background-color: #111;
+     }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas" width="800" height="550"></canvas>
+
+  <script>
+    _canvas        = $("#canvas");
+    _view          = new obelisk.PixelView(_canvas, new obelisk.Point(200, 300));
+    _entities      = [];
+    _element_width = 20;
+    _fps           = 30;
+    _sleep_time    = 100; // Sleep time in milliseconds between each frame
+    _nbr_rows      = 44;
+    _wave          = {
+                       "strengh": 70,  // In pixels
+                       "amplitude": 6, // Number of blocks affected by the wave
+                       "position": 0,  // Current position of the wave
+                       "speed": 4.5    // Block per second
+                     };
+
+    var resetWavePosition = function()
+    {
+      _wave["position"] = -_wave["amplitude"];
+    };
+
+    var init = function()
+    {
+      // Init the wave position
+      resetWavePosition();
+    };
+
+    var createScene = function()
+    {
+      for( var row = 0; row < _nbr_rows; ++row )
+        _entities.push( createEntity(row) );
+    };
+
+    var render = function()
+    {
+      _view.clear();
+
+      for( var row = 0; row < _nbr_rows; ++row )
+      {
+        var entity   = _entities[row];
+        var graphic  = entity["graphic"];
+        var position = entity["position"];
+
+        // Blocks affected by the wave
+        if( row > _wave["position"] - _wave["amplitude"] &&
+            row < _wave["position"] + _wave["amplitude"] )
+        {
+          // Update z position
+          var strengh_per_amplitude = _wave["strengh"] / _wave["amplitude"];
+          var pos_z = position.z + _wave["strengh"];
+          if( row != _wave["position"] )
+            pos_z -= Math.abs(row - _wave["position"]) * strengh_per_amplitude;
+
+          position = new obelisk.Point3D(position.x, position.y, pos_z);
+        }
+
+        // Render the entity
+        _view.renderObject(graphic, position);
+      }
+
+      // Update wave position
+      _wave["position"] += _wave["speed"] * _sleep_time / 1000.0;
+      if( _wave["position"] > _nbr_rows + _wave["amplitude"] )
+        resetWavePosition();
+      //console.log(_wave["position"]);
+    };
+
+    var createEntity = function(row)
+    {
+      var dimension = new obelisk.CubeDimension(_element_width, 500, 350);
+      var color     = new obelisk.CubeColor().getByHorizontalColor( obelisk.ColorPattern.BLUE );
+      var graphic   = new obelisk.Cube(dimension, color, false);
+      var position  = new obelisk.Point3D(row * _element_width, 0, 0);
+
+      var entity = {
+        "graphic": graphic,
+        "position": position
+      };
+
+      return entity;
+    };
+
+    $(document).ready(function()
+    {
+      init();
+      createScene();
+      render();
+
+      window.setInterval(function()
+      {
+        render();
+      }, _sleep_time);
+    });
+  </script>
+</body>
+</html>
